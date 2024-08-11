@@ -1,0 +1,9 @@
+[package]
+name = "egui_light_states"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.38"
+egui = "0.28.1"
+lazy_async_promise = { path = "../lazy_async_promise" } #"0.5.0"
