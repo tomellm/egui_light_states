@@ -6,10 +6,12 @@ use egui::Ui;
 
 #[derive(Default)]
 pub struct UiStates {
+    #[allow(dead_code)]
     map: HashMap<String, UiStateType>,
 }
 
 impl UiStates {
+    #[allow(unused)]
     pub fn timer<DoneUi, TimingUi, State>(
         &mut self,
         name: &str,
@@ -19,7 +21,7 @@ impl UiStates {
         new_timer_done_ui: DoneUi,
         new_timer_timing_ui: TimingUi,
     ) where
-        DoneUi: FnOnce(&mut Ui, &mut State, &mut dyn FnMut<(), Output = ()>) + 'static,
+        DoneUi: FnOnce(&mut Ui, &mut State, &mut dyn FnMut()) + 'static,
         TimingUi: FnOnce(&mut Ui, &mut State, f32) + 'static,
         State: InternalState + 'static,
     {
@@ -34,7 +36,7 @@ impl UiStates {
                     let _ = timer_done_ui.insert(Box::new(
                         |ui: &mut Ui,
                          state: &mut Box<dyn InternalState>,
-                         reset_fn: &mut dyn FnMut<(), Output = ()>| {
+                         reset_fn: &mut dyn FnMut()| {
                             new_timer_done_ui(
                                 ui,
                                 state.to().downcast_mut::<State>().unwrap(),
@@ -65,7 +67,7 @@ impl UiStates {
                     Box::new(
                         |ui: &mut Ui,
                          state: &mut Box<dyn InternalState>,
-                         reset_fn: &mut dyn FnMut<(), Output = ()>| {
+                         reset_fn: &mut dyn FnMut()| {
                             new_timer_done_ui(
                                 ui,
                                 state.to().downcast_mut::<State>().unwrap(),
@@ -105,10 +107,11 @@ enum UiStateType {
         timer_timing_ui: Option<TimerTimingUi>,
     },
 }
-type TimerDoneUi = Box<dyn FnOnce(&mut Ui, &mut Box<dyn InternalState>, &mut dyn FnMut<(), Output = ()>)>;
+type TimerDoneUi = Box<dyn FnOnce(&mut Ui, &mut Box<dyn InternalState>, &mut dyn FnMut())>;
 type TimerTimingUi = Box<dyn FnOnce(&mut Ui, &mut Box<dyn InternalState>, f32)>;
 
 impl UiStateType {
+    #[allow(unused)]
     pub fn timer<State>(
         seconds: i64,
         state: State,
@@ -127,6 +130,7 @@ impl UiStateType {
         }
     }
 
+    #[allow(unused)]
     pub fn ui<State>(&mut self, ui: &mut Ui)
     where
         State: InternalState + 'static,

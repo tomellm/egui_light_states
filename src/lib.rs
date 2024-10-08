@@ -1,12 +1,12 @@
-#![feature(unboxed_closures)]
-
 use std::{any::Any, collections::HashMap};
 
 use egui::Ui;
 
 mod other;
 pub mod promise_await;
+pub mod default_promise_await;
 pub mod timer;
+pub mod future_await;
 
 pub trait UiWithState {
     fn ui(&mut self, ui: &mut Ui);
@@ -14,17 +14,17 @@ pub trait UiWithState {
 
 #[derive(Default)]
 pub struct UiStates {
-    pub(crate) states: HashMap<&'static str, Box<dyn Any>>,
+    pub(crate) states: HashMap<String, Box<dyn Any + Send + 'static>>,
 }
 
 impl UiStates {
     pub(crate) fn get_mut<'state, StateType>(
         &'state mut self,
-        name: &'static str,
+        name: String,
         init_state: StateType,
     ) -> &'state mut StateType
     where
-        StateType: 'static,
+        StateType: Send + 'static,
     {
         self.states
             .entry(name)
@@ -36,14 +36,14 @@ impl UiStates {
 
 pub trait InternalStateTraits
 where
-    Self: 'static,
+    Self: Send + 'static,
 {
     fn to(&mut self) -> &mut dyn Any;
 }
 
 impl<T> InternalStateTraits for T
 where
-    T: 'static,
+    T: Send + 'static,
 {
     fn to(&mut self) -> &mut dyn Any {
         self

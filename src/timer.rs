@@ -6,7 +6,7 @@ use crate::{UiStates, UserStateTraits};
 pub trait CreateTimerUi {
     fn timer<'state, DoneUi, TimingUi, UserState>(
         &'state mut self,
-        name: &'static str,
+        name: String,
         duration: i64,
     ) -> TimerBuilder<'state, DoneUi, TimingUi, UserState>
     where
@@ -18,7 +18,7 @@ pub trait CreateTimerUi {
 impl CreateTimerUi for UiStates {
     fn timer<'state, DoneUi, TimingUi, UserState>(
         &'state mut self,
-        name: &'static str,
+        name: String,
         duration: i64,
     ) -> TimerBuilder<'state, DoneUi, TimingUi, UserState>
     where
@@ -137,14 +137,14 @@ impl From<i64> for TimerState {
 
 pub trait DoneUiTraits<State>
 where
-    Self: FnOnce(&mut Ui, &mut State, &mut dyn FnMut<(), Output = ()>) + 'static,
+    Self: FnOnce(&mut Ui, &mut State, &mut dyn FnMut()) + 'static,
     State: UserStateTraits,
 {
 }
 
 impl<State, T> DoneUiTraits<State> for T
 where
-    T: FnOnce(&mut Ui, &mut State, &mut dyn FnMut<(), Output = ()>) + 'static,
+    T: FnOnce(&mut Ui, &mut State, &mut dyn FnMut()) + 'static,
     State: UserStateTraits,
 {
 }
