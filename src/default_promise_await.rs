@@ -52,6 +52,7 @@ where
     /// ```rust
     ///     |ui, set_promise|
     /// ```
+    #[must_use]
     pub fn init_ui(mut self, ui: InitUi) -> Self {
         self.init_ui = Some(ui);
         self

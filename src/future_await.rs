@@ -6,6 +6,9 @@ use lazy_async_promise::{
 use crate::UiStates;
 
 pub trait FutureAwait {
+    fn is_running<'state, T>(&'state mut self, name: impl Into<String>) -> bool
+    where
+        T: Send + 'static;
     #[must_use]
     fn set_future<'state, T>(
         &'state mut self,
@@ -23,13 +26,22 @@ pub trait FutureAwait {
 }
 
 impl FutureAwait for UiStates {
+    fn is_running<'state, T>(&'state mut self, name: impl Into<String>) -> bool
+    where
+        T: Send + 'static,
+    {
+        self.get_mut::<Option<ImmediateValuePromise<T>>>(name.into(), None)
+            .as_mut()
+            .map(|promise| matches!(promise.poll_state(), ImmediateValueState::Updating))
+            .unwrap_or(false)
+    }
     #[must_use]
     fn set_future<'state, T>(
         &'state mut self,
         name: impl Into<String>,
     ) -> SetFutureBuilder<'state, T>
-where
-        T: Send + 'static
+    where
+        T: Send + 'static,
     {
         let state = self.get_mut(name.into(), None);
         SetFutureBuilder { state }
@@ -39,8 +51,8 @@ where
         &'state mut self,
         name: impl Into<String>,
     ) -> FutureStatusBuilder<'state, T>
-where
-        T: Send + 'static
+    where
+        T: Send + 'static,
     {
         let state = self.get_mut(name.into(), None);
         FutureStatusBuilder {
@@ -84,15 +96,17 @@ where
 {
     #[must_use]
     pub fn default(self) -> Self {
-        self.spinner().empty_ui(|_| {}).done_ui(|ui, result, reset| {
-            match result {
-                Ok(_) => ui.label("success"),
-                Err(_) => ui.label("error"),
-            };
-            if ui.button("clear").clicked() {
-                reset();
-            }
-        })
+        self.spinner()
+            .empty_ui(|_| {})
+            .done_ui(|ui, result, reset| {
+                match result {
+                    Ok(_) => ui.label("success"),
+                    Err(_) => ui.label("error"),
+                };
+                if ui.button("clear").clicked() {
+                    reset();
+                }
+            })
     }
     #[must_use]
     pub fn done_ui(
@@ -113,6 +127,11 @@ where
             ui.add(Spinner::new());
         }));
         self
+    }
+    pub fn only_poll(self) {
+        self.state.as_mut().map(|promise| {
+            promise.poll_state();
+        });
     }
     pub fn show(self, ui: &mut Ui) {
         let Some(promise) = self.state else {
