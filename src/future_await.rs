@@ -1,3 +1,30 @@
+//! Check out [`UiStates`] to get started with this crate, after which come back
+//! here.
+//!
+//! The [`FutureAwait`] trait provides three functions to store and then view
+//! some kind of async state.
+//!
+//! Stores future in internal state through [`set_future`][set_fut] and then provides
+//! methods to acceess state of internal future like: [`is_running`][is_run] and
+//! [`future_status`][fut_stat]
+//!
+//! ```
+//! if !self.ui.is_running::<T>("future_name")
+//!     && ui.button("Save parsed Data").clicked()
+//! {
+//!     let future = self.save_parsed_data();
+//!     self.ui.set_future("future_name").set(future);
+//! }
+//! self.ui
+//!     .future_status::<()>("future_name")
+//!     .default()
+//!     .show(ui);
+//! ```
+//!
+//! [is_run]: FutureAwait::is_running
+//! [set_fut]: FutureAwait::set_future
+//! [fut_stat]: FutureAwait::future_status
+
 use egui::{Spinner, Ui};
 use lazy_async_promise::{
     BoxedSendError, DirectCacheAccess, ImmediateValuePromise, ImmediateValueState,
@@ -5,28 +32,92 @@ use lazy_async_promise::{
 
 use crate::UiStates;
 
+/// Stores future in internal state through [`set_future`][FutureAwait::set_future] and then provides
+/// methods to acceess state of internal future.
+///
+/// ```
+/// if !self.ui.is_running::<T>("future_name")
+///     && ui.button("Save parsed Data").clicked()
+/// {
+///     let future = self.save_parsed_data();
+///     self.ui.set_future("future_name").set(future);
+/// }
+/// self.ui
+///     .future_status::<()>("future_name")
+///     .default()
+///     .show(ui);
+/// ```
 pub trait FutureAwait {
-    fn is_running<'state, T>(&'state mut self, name: impl Into<String>) -> bool
+    /// Part of trait [`FutureAwait`] To be used in combination with the functions: [`set_future`][set_fut]
+    /// and/or [`future_status`][fut_stat]
+    ///
+    /// Will poll the internal future updating its state and checking if its still
+    /// running. Useful because it allows you to poll the future without having
+    /// to use [`future_status`][fut_stat]
+    ///
+    /// ```
+    /// let ui_state: UiStates;
+    ///
+    /// // -- your code
+    ///
+    /// if !ui_state.is_running::<T>("future_name")
+    ///     && ui.button("Save Data").clicked()
+    /// {
+    ///     let future = // -- some function returning a future
+    ///     ui_state.set_future("future_name").set(future);
+    /// }
+    /// ```
+    ///
+    /// [set_fut]: crate::future_await::FutureAwait::set_future
+    /// [fut_stat]: crate::future_await::FutureAwait::future_status
+    fn is_running<T>(&mut self, name: impl Into<String>) -> bool
     where
         T: Send + 'static;
+
+    /// Part of trait [`FutureAwait`]
+    /// To be used in combination with the functions: [`is_running`][is_run]
+    /// and/or [`future_status`][fut_stat]
+    ///
+    /// Will set the passed future as the internal state of the defined name.
+    ///
+    /// ```
+    /// self.ui.set_future("state_name").set(future);
+    /// ```
+    ///
+    /// [is_run]: crate::future_await::FutureAwait::is_running
+    /// [fut_stat]: crate::future_await::FutureAwait::future_status
     #[must_use]
-    fn set_future<'state, T>(
-        &'state mut self,
-        name: impl Into<String>,
-    ) -> SetFutureBuilder<'state, T>
+    fn set_future<T>(&mut self, name: impl Into<String>) -> SetFutureBuilder<T>
     where
         T: Send + 'static;
+
+    /// Part of trait [`FutureAwait`]
+    /// To be used in combination with the functions: [`is_running`][is_run]
+    /// and/or [`set_future`][set_fut]
+    ///
+    /// Allows for viewing and modifying of the internal future state from different
+    /// locations.
+    ///
+    /// ```
+    /// self.state
+    ///     .future_status::<T>("your_state_name")
+    ///     .default()
+    ///     .show(ui);
+    /// ```
+    ///
+    /// Check out the [`FutureStatusBuilder`] for all of the customization
+    /// options for the status.
+    ///
+    /// [is_run]: crate::future_await::FutureAwait::is_running
+    /// [set_fut]: crate::future_await::FutureAwait::set_future
     #[must_use]
-    fn future_status<'state, T>(
-        &'state mut self,
-        name: impl Into<String>,
-    ) -> FutureStatusBuilder<'state, T>
+    fn future_status<T>(&mut self, name: impl Into<String>) -> FutureStatusBuilder<T>
     where
         T: Send + 'static;
 }
 
 impl FutureAwait for UiStates {
-    fn is_running<'state, T>(&'state mut self, name: impl Into<String>) -> bool
+    fn is_running<T>(&mut self, name: impl Into<String>) -> bool
     where
         T: Send + 'static,
     {
@@ -36,10 +127,7 @@ impl FutureAwait for UiStates {
             .unwrap_or(false)
     }
     #[must_use]
-    fn set_future<'state, T>(
-        &'state mut self,
-        name: impl Into<String>,
-    ) -> SetFutureBuilder<'state, T>
+    fn set_future<T>(&mut self, name: impl Into<String>) -> SetFutureBuilder<T>
     where
         T: Send + 'static,
     {
@@ -47,10 +135,7 @@ impl FutureAwait for UiStates {
         SetFutureBuilder { state }
     }
     #[must_use]
-    fn future_status<'state, T>(
-        &'state mut self,
-        name: impl Into<String>,
-    ) -> FutureStatusBuilder<'state, T>
+    fn future_status<T>(&mut self, name: impl Into<String>) -> FutureStatusBuilder<T>
     where
         T: Send + 'static,
     {
